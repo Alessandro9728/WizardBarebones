@@ -1,0 +1,6 @@
+./lambdas/DBRead/src/node_modules
+./lambdas/DBWrite/src/node_modules
+./lambdas/DBRead/src/dist
+./lambdas/DBWrite/src/dist
+./.terraform
+./assets

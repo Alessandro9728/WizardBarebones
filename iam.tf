@@ -37,12 +37,30 @@ resource "aws_iam_role_policy_attachment" "write_to_table" {
     role = aws_iam_role.write_wizard_lambda_role.name
 }
 
+data "aws_iam_policy_document" "read_from_table" {
+    statement {
+      actions = [ "dynamodb:GetItem" ]
+      resources = [ aws_dynamodb_table.wizard-runtime.arn ]
+    }
+  
+}
+
+resource "aws_iam_policy" "read_from_table" {
+  name = "read-from-table-policy"
+  policy = data.aws_iam_policy_document.read_from_table.json
+}
+
+resource "aws_iam_role_policy_attachment" "read_from_table" {
+    policy_arn = aws_iam_policy.read_from_table.arn
+    role = aws_iam_role.read_wizard_lambda_role.name
+}
+
 resource "aws_lambda_permission" "allow_api_gateway_read" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.read_wizard_instance.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/GET/wizard-api-gateway"
+  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/GET/wizard-instances/{wizardInstance}"
 }
 
 resource "aws_lambda_permission" "allow_api_gateway_write" {
@@ -50,22 +68,28 @@ resource "aws_lambda_permission" "allow_api_gateway_write" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.write_wizard_instance.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/POST/wizard-api-gateway"
+  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/POST/wizard-instances"
 }
 
-resource "aws_lambda_permission" "allow_cloudwatch_read" {
-  statement_id  = "AllowExecutionFromCloudWatch"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.read_wizard_instance.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:eu-west-1:778951600279:*/*"
+data "aws_iam_policy_document" "cloudwatch_lambda_logging" {
+  statement {
+    actions = [ "logs:CreateLogStream", "logs:PutLogEvents" ]
+    resources = [ "arn:aws:logs:*:*:*" ]
+  }
 }
 
-resource "aws_lambda_permission" "allow_cloudwatch_write" {
-  statement_id  = "AllowExecutionFromCloudWatch"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.write_wizard_instance.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:eu-west-1:778951600279:*/*"
+resource "aws_iam_policy" "cloudwatch_lambda_logging" {
+  name = "clodwatch_lambda_logging"
+  policy = data.aws_iam_policy_document.cloudwatch_lambda_logging.json
+}
+
+resource "aws_iam_role_policy_attachment" "write_lambda_logging" {
+    policy_arn = aws_iam_policy.cloudwatch_lambda_logging.arn
+    role = aws_iam_role.read_wizard_lambda_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "read_lambda_logging" {
+    policy_arn = aws_iam_policy.cloudwatch_lambda_logging.arn
+    role = aws_iam_role.write_wizard_lambda_role.name
 }
 

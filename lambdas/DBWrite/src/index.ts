@@ -13,8 +13,8 @@ const insertItem = async (parsed : any): Promise<String> => {
     const data = {
         TableName: "WIZARD-RUNTIME",
         Item: {
-            "wizard-instance": parsed.instance,
-            "wizard-id": parsed.id
+            "wizard-instance": parsed["wizard-instance"],
+            "wizard-id": parsed["wizard-id"]
         },
     };
     console.log("DATA: ", JSON.stringify(data));
@@ -29,16 +29,16 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
     console.log(`Event: ${JSON.stringify(event, null, 2)}`);
     console.log(`Context: ${JSON.stringify(context, null, 2)}`);
 
-    if(!event.body){
+    if(!event.body || !event.body["wizard-instance"]){
         return {
-            statusCode: 200,
+            statusCode: 400,
             body: JSON.stringify({
-                message: event,
+                message: "Empty Request Body Or Check For Typos",
             }),
         };
-    }
+    } 
 
-    const obj = JSON.parse(JSON.stringify(event))
+    const obj = JSON.parse(event.body)
     const result = await insertItem(obj)
 
     return {

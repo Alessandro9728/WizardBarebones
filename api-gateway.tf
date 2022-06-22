@@ -1,7 +1,20 @@
 resource "aws_api_gateway_rest_api" "wizard_api_gateway" {
   name = "wizard-api-gateway"
-}
+  disable_execute_api_endpoint = false
 
+  body = templatefile(
+    "${path.module}/swagger/wizard_api.yaml",
+    {
+      account-id              = var.account_id
+      region                  = var.region
+      read-role-arn           = aws_iam_role.read_wizard_lambda_role.arn
+      write-role-arn          = aws_iam_role.write_wizard_lambda_role.arn
+      lambda-write-wizard-instance = aws_lambda_function.read_wizard_instance.function_name
+      lambda-read-wizard-instance = aws_lambda_function.write_wizard_instance.function_name
+    }
+  )
+}
+/*
 resource "aws_api_gateway_resource" "wizard_instances" {
   parent_id   = aws_api_gateway_rest_api.wizard_api_gateway.root_resource_id
   path_part   = "wizard-instances"
@@ -52,6 +65,7 @@ resource "aws_api_gateway_integration" "wizard_api_gateway_write_int" {
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.write_wizard_instance.invoke_arn
 }
+*/
 
 resource "aws_api_gateway_deployment" "wizard_api_gateway_depl" {
   rest_api_id = aws_api_gateway_rest_api.wizard_api_gateway.id
@@ -64,6 +78,7 @@ resource "aws_api_gateway_deployment" "wizard_api_gateway_depl" {
     #       calculate a hash against whole resources. Be aware that using whole
     #       resources will show a difference after the initial implementation.
     #       It will stabilize to only change when resources change afterwards.
+    /*
     redeployment = sha1(jsonencode([
       aws_api_gateway_resource.wizard_instances.id,
       aws_api_gateway_resource.wizard_instance.id,
@@ -71,7 +86,8 @@ resource "aws_api_gateway_deployment" "wizard_api_gateway_depl" {
       aws_api_gateway_method.read_from_table,
       aws_api_gateway_integration.wizard_api_gateway_write_int.id,
       aws_api_gateway_integration.wizard_api_gateway_read_int.id,
-    ]))
+    ]))*/
+    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.wizard_api_gateway.body))
   }
 
   lifecycle {

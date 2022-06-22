@@ -1,0 +1,188 @@
+openapi: "3.0.3"
+info:
+  title: "Ngom Wizard-Engine web client REST API"
+  version: "v1"
+
+
+paths:
+  /wizard-instances/:
+    post:
+      requestBody:
+        description: "DynamoDB table | 
+                      WIZARD-RUNTIME record"
+        required: true
+        content:
+          application/json: 
+            schema:
+              $ref: '#/components/schemas/wizardRuntime'
+      summary: "Wizard instance insertion"
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-request-validator: 'Validate query string parameters and headers'
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        httpMethod: "POST"
+        credentials: "${write-role-arn}"
+        uri: "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account-id}:function:${lambda-write-wizard-instance}/invocations"    
+
+  /wizard-instances/{wizard-instance}:
+    get:
+      summary: "Get wizard instance detail"
+      parameters: 
+        - in: path
+          name: wizard-instance
+          schema:
+            type: string
+          required: true
+          description: 'Wizard instance ID'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-request-validator: 'Validate query string parameters and headers'
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        httpMethod: "POST"
+        credentials: "${read-role-arn}"
+        uri: "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account-id}:function:${lambda-read-wizard-instance}/invocations"
+
+components:
+  schemas:
+    wizardRuntime:
+      title: 'wizardRuntime'
+      type: 'object'
+      properties:
+        wizard-instance:
+          type: string
+        wizard-id:
+          type: string
+      required: 
+        - wizard-instance
+    
+    Empty:
+      title: 'Empty'
+      type: 'object'
+    Unauthorized:
+      title: 'NotAuthorized'
+      type: object
+      properties:
+        message:
+          type: string
+      example: {
+        "message": "Unauthorized"
+      }
+    Forbidden:
+      title: 'Forbidden'
+      type: object
+      properties:
+        message:
+          type: string
+      example: {
+        "message": "The server understood the request but refuses to authorize it"
+      }
+    InternalServerError:
+      title: 'InternalServerError'
+      type: object
+      properties:
+        message:
+          type: string
+      example: {
+        "message": "Something went wrong"
+      }
+  responses:
+    Success:
+      description: "200 response"
+      headers:
+        Access-Control-Allow-Origin:
+          schema:
+            type: "string"
+        Access-Control-Allow-Methods:
+          schema:
+            type: "string"
+        Access-Control-Allow-Headers:
+          schema:
+            type: "string"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Empty'
+    Unauthorized:
+      description: 'Not authorized to perform this action'
+      headers:
+        Access-Control-Allow-Headers:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Methods:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Origin:
+          schema:
+            type: 'string'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Unauthorized'
+    Forbidden:
+      description: 'This action is forbidden'
+      headers:
+        Access-Control-Allow-Headers:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Methods:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Origin:
+          schema:
+            type: 'string'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Forbidden'
+    InternalServerError:
+      description: 'Internal Server Error'
+      headers:
+        Access-Control-Allow-Headers:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Methods:
+          schema:
+            type: 'string'
+        Access-Control-Allow-Origin:
+          schema:
+            type: 'string'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalServerError'
+    OptionsMethodSuccess:
+      description: "200 response"
+      headers:
+        Access-Control-Allow-Origin:
+          schema:
+            type: "string"
+        Access-Control-Allow-Methods:
+          schema:
+            type: "string"
+        Access-Control-Allow-Headers:
+          schema:
+            type: "string"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Empty"
+      title: 'InternalServerError'
+      type: object
+      properties:
+        message:
+          type: string
+      example: {
+        "message": "Something went wrong"
+      }

@@ -32,7 +32,7 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
     console.log(`Event: ${JSON.stringify(event, null, 2)}`);
     console.log(`Context: ${JSON.stringify(context, null, 2)}`);
     
-    if(!event.pathParameters || !event.pathParameters["wizardInstance"]){
+    if(!event.pathParameters || !event.pathParameters["wizard-instance"]){
         return {
             statusCode: 400,
             body: JSON.stringify({
@@ -41,7 +41,7 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
         };
     } 
 
-    const obj = event.pathParameters["wizardInstance"]
+    const obj = event.pathParameters["wizard-instance"]
     const result = await readItem(obj)
 
     if("wizardInstance" in result)
@@ -55,7 +55,7 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
         return {
             statusCode: 404,
             body: JSON.stringify({
-                message: `Object with Key ${event.pathParameters["wizardInstance"]} Not Found!`,
+                message: `Object with Key ${event.pathParameters["wizard-instance"]} Not Found!`,
             }),
         }
     

@@ -1,16 +1,74 @@
+variable "account_id" {
+  description = "AWS account id"
+  type        = string
+  default = "778951600279"
+}
+
+variable "region" {
+  description = "AWS region where resources will be deployed"
+  type        = string
+  default = "eu-west-1"
+}
+
+resource "aws_iam_policy" "api_gateway_permissions" {
+  name   = "APIGateway-Permissions"
+  policy = data.aws_iam_policy_document.api_gateway.json
+}
+
+data "aws_iam_policy_document" "api_gateway" {
+  statement {
+    sid = "APIGatewayInvokeFunctions"
+
+    effect = "Allow"
+
+    actions = [
+      "lambda:InvokeFunction"
+    ]
+
+    resources = [
+      aws_lambda_function.read_wizard_instance.arn,
+      aws_lambda_function.write_wizard_instance.arn
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "api_gateway_trust_policy" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "sts:AssumeRole"
+    ]
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "api_gateway" {
+  name               = "APIGateway-Role"
+  assume_role_policy = data.aws_iam_policy_document.api_gateway_trust_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "api_gateway_permissions" {
+  role       = aws_iam_role.api_gateway.name
+  policy_arn = aws_iam_policy.api_gateway_permissions.arn
+}
+
 resource "aws_api_gateway_rest_api" "wizard_api_gateway" {
   name = "wizard-api-gateway"
   disable_execute_api_endpoint = false
 
   body = templatefile(
-    "${path.module}/swagger/wizard_api.yaml",
+    "./swagger/wizard_api.yaml",
     {
       account-id              = var.account_id
       region                  = var.region
-      read-role-arn           = aws_iam_role.read_wizard_lambda_role.arn
-      write-role-arn          = aws_iam_role.write_wizard_lambda_role.arn
-      lambda-write-wizard-instance = aws_lambda_function.read_wizard_instance.function_name
-      lambda-read-wizard-instance = aws_lambda_function.write_wizard_instance.function_name
+      role-arn           = aws_iam_role.api_gateway.arn
+      lambda-write-wizard-instance = aws_lambda_function.write_wizard_instance.function_name
+      lambda-read-wizard-instance = aws_lambda_function.read_wizard_instance.function_name
+      cognito-userpool-arn = aws_cognito_user_pool.cognito_user_pool.arn
     }
   )
 }
@@ -99,4 +157,54 @@ resource "aws_api_gateway_stage" "wizard_api_gateway_stage" {
   deployment_id = aws_api_gateway_deployment.wizard_api_gateway_depl.id
   rest_api_id   = aws_api_gateway_rest_api.wizard_api_gateway.id
   stage_name    = "wizard-dev"
+}
+
+resource "aws_api_gateway_usage_plan" "default_usage_plan" {
+  name = "wizard-api-gateway-usage-plan"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.wizard_api_gateway.id
+    stage  = aws_api_gateway_stage.wizard_api_gateway_stage.stage_name
+  }
+}
+
+//Cognito Resources
+resource "aws_cognito_user_pool" "cognito_user_pool" {
+  name = "user-pool"
+
+  username_attributes = ["email"]
+  password_policy {
+    minimum_length = 6
+  }
+
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+    email_subject = "Account Confirmation"
+    email_message = "Your confirmation code is {####}"
+  }
+
+  schema {
+    attribute_data_type      = "String"
+    developer_only_attribute = false
+    mutable                  = true
+    name                     = "email"
+    required                 = true
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 256
+    }
+  }
+}
+
+resource "aws_cognito_user_pool_client" "client" {
+  name = "cognito-client"
+
+  user_pool_id = aws_cognito_user_pool.cognito_user_pool.id
+  explicit_auth_flows = [ "USER_PASSWORD_AUTH" ]
+}
+
+resource "aws_cognito_user_pool_domain" "cognito-domain" {
+  domain       = "wizard-engine"
+  user_pool_id = "${aws_cognito_user_pool.cognito_user_pool.id}"
 }

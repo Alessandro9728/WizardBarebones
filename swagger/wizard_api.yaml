@@ -7,15 +7,12 @@ info:
 paths:
   /wizard-instances/:
     post:
+      summary: "Insert new wizard instance"
       requestBody:
-        description: "DynamoDB table | 
-                      WIZARD-RUNTIME record"
-        required: true
         content:
-          application/json: 
+          application/json:
             schema:
               $ref: '#/components/schemas/wizardRuntime'
-      summary: "Wizard instance insertion"
       responses:
         '200':
           $ref: '#/components/responses/Success'
@@ -23,12 +20,14 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+      security:
+        - CognitoAuthorizer: []
       x-amazon-apigateway-request-validator: 'Validate query string parameters and headers'
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
-        credentials: "${write-role-arn}"
-        uri: "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account-id}:function:${lambda-write-wizard-instance}/invocations"    
+        credentials: "${role-arn}"
+        uri: "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account-id}:function:${lambda-write-wizard-instance}/invocations"
 
   /wizard-instances/{wizard-instance}:
     get:
@@ -47,25 +46,26 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+      security:
+        - CognitoAuthorizer: []
       x-amazon-apigateway-request-validator: 'Validate query string parameters and headers'
       x-amazon-apigateway-integration:
         type: "aws_proxy"
         httpMethod: "POST"
-        credentials: "${read-role-arn}"
+        credentials: "${role-arn}"
         uri: "arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${account-id}:function:${lambda-read-wizard-instance}/invocations"
 
 components:
   schemas:
     wizardRuntime:
       title: 'wizardRuntime'
-      type: 'object'
+      type: object
       properties:
         wizard-instance:
           type: string
-        wizard-id:
-          type: string
-      required: 
-        - wizard-instance
+      required:
+        - "wizard-instance"
+      additionalProperties: true
     
     Empty:
       title: 'Empty'
@@ -162,27 +162,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/InternalServerError'
-    OptionsMethodSuccess:
-      description: "200 response"
-      headers:
-        Access-Control-Allow-Origin:
-          schema:
-            type: "string"
-        Access-Control-Allow-Methods:
-          schema:
-            type: "string"
-        Access-Control-Allow-Headers:
-          schema:
-            type: "string"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Empty"
-      title: 'InternalServerError'
-      type: object
-      properties:
-        message:
-          type: string
-      example: {
-        "message": "Something went wrong"
-      }
+  securitySchemes:
+    CognitoAuthorizer:
+      type: 'apiKey'
+      name: 'Authorization'
+      in: 'header'
+      x-amazon-apigateway-authtype: 'cognito_user_pools'
+      x-amazon-apigateway-authorizer:
+        providerARNs: 
+        - '${cognito-userpool-arn}'
+        type: 'cognito_user_pools'

@@ -5,7 +5,7 @@ data "archive_file" "read_wizard_instance" {
 }
 
 resource "aws_lambda_function" "read_wizard_instance" {
-  function_name    = "read-wizard-instance"
+  function_name    = "readwizardinstance"
   runtime          = "nodejs14.x"
   handler          = "index.lambdaHandler"
   filename         = data.archive_file.read_wizard_instance.output_path

@@ -55,22 +55,6 @@ resource "aws_iam_role_policy_attachment" "read_from_table" {
     role = aws_iam_role.read_wizard_lambda_role.name
 }
 
-resource "aws_lambda_permission" "allow_api_gateway_read" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.read_wizard_instance.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/GET/wizard-instances/{wizardInstance}"
-}
-
-resource "aws_lambda_permission" "allow_api_gateway_write" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.write_wizard_instance.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.wizard_api_gateway.execution_arn}/*/POST/wizard-instances"
-}
-
 data "aws_iam_policy_document" "cloudwatch_lambda_logging" {
   statement {
     actions = [ "logs:CreateLogStream", "logs:PutLogEvents" ]

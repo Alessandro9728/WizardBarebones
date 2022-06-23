@@ -5,7 +5,7 @@ data "archive_file" "write_wizard_instance" {
 }
 
 resource "aws_lambda_function" "write_wizard_instance" {
-  function_name    = "write-wizard-instance"
+  function_name    = "writewizardinstance"
   runtime          = "nodejs14.x"
   handler          = "index.lambdaHandler"
   filename         = data.archive_file.write_wizard_instance.output_path

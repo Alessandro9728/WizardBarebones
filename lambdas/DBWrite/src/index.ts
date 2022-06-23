@@ -6,7 +6,9 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const insertItem = async (parsed : any): Promise<String> => {
     // TODO controllo che esistano partition key e sort key
-    
+    if(!parsed["wizard-instance"])
+        return "Error, missing key in request body"
+
     const client = new DynamoDBClient({});
     const ddbDocClient = DynamoDBDocumentClient.from(client);
 
@@ -29,7 +31,7 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
     console.log(`Event: ${JSON.stringify(event, null, 2)}`);
     console.log(`Context: ${JSON.stringify(context, null, 2)}`);
 
-    if(!event.body || !event.body["wizard-instance"]){
+    if(!event.body){
         return {
             statusCode: 400,
             body: JSON.stringify({
@@ -40,13 +42,20 @@ export const lambdaHandler = async (event: APIGatewayEvent, context: Context): P
 
     const obj = JSON.parse(event.body)
     const result = await insertItem(obj)
-
-    return {
-        statusCode: 200,
-        body: JSON.stringify({
-            message: result,
-        }),
-    };
+    if(result === "OK")
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                message: result,
+            }),
+        };
+    else
+        return {
+            statusCode: 400,
+            body: JSON.stringify({
+                message: result,
+            }),
+        };
     
 
 
